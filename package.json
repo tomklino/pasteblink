@@ -1,0 +1,22 @@
+{
+  "name": "pasteblink",
+  "version": "0.1.0",
+  "description": "an app to link two computers using barcode scanning and to use that link to transfer text snippets",
+  "main": "app.js",
+  "scripts": {
+    "test": "node_modules/.bin/mocha tests",
+    "start": "node app.js"
+  },
+  "author": "Tom Klinovsky",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4",
+    "nconf": "^0.10.0",
+    "nice_debug": "^0.1.1"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "chai-http": "^4.2.0",
+    "mocha": "^5.2.0"
+  }
+}
