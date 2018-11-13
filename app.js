@@ -1,5 +1,6 @@
 const express = require('express');
 const WebSocket = require('ws');
+var useragent = require('express-useragent');
 const cookieSession = require('cookie-session');
 
 const configLoader = require('./config-loader.js')
@@ -11,6 +12,7 @@ app.use(cookieSession({
   secret: config.get('cookie_secret'),
   signed: true
 }))
+app.use(useragent.express());
 
 const wss = new WebSocket.Server({ port: 8888 });
 
@@ -97,6 +99,11 @@ function addNewClient({ ws }) {
 }
 
 app.get('/client/:client_id', (req, res) => {
+  if(req.useragent.browser === 'unknown') {
+    console.log('unknown browser, may not be able to handle cookies. ignoring')
+    res.send('')
+    return;
+  }
   const { client_id } = req.params;
   const { session_id } = req.session;
   console.log('/client:', client_id)

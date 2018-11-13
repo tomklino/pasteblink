@@ -12,6 +12,7 @@
   "dependencies": {
     "cookie-session": "^2.0.0-beta.3",
     "express": "^4.16.4",
+    "express-useragent": "^1.0.12",
     "nconf": "^0.10.0",
     "nice_debug": "^0.1.1",
     "ws": "^6.1.0"
