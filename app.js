@@ -59,6 +59,22 @@ function addToSession({ client_id, session_id }) {
     })
   })
   session.push(client_id)
+  client.ws.send(JSON.stringify({
+    type: 'linked',
+    session_active: session.length > 1
+  }))
+  if(session.length > 1) {
+    console.log('session has additional client(s) connected to it, letting them know...')
+    session
+      .filter(peer_id => peer_id !== client_id)
+      .map(peer_id => all_clients[peer_id])
+      .forEach((peer) => {
+        peer.ws.send(JSON.stringify({
+          type: 'linked',
+          session_active: true
+        }))
+      })
+  }
   return session_id;
 }
 
@@ -74,6 +90,10 @@ function addNewClient({ ws }) {
     console.log("connection closed: " + client.client_id)
   })
   client.ws = ws;
+  ws.send(JSON.stringify({
+    type: 'server-init',
+    client_id: client.client_id
+  }))
 }
 
 app.get('/client/:client_id', (req, res) => {
