@@ -1,9 +1,5 @@
 const nconf = require('nconf');
-const fs = require('fs');
 const path = require('path');
-
-const package_name =
-  JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"))).name;
 
 module.exports = function configLoader(options) {
   options = options || {};
@@ -14,15 +10,15 @@ module.exports = function configLoader(options) {
     .env('__')
 
   nconf.file('config', {
-    file: nconf.get('conf-file-location') || home_dir + '/config.json'
+    file: nconf.get('CONFIG_FILE') || path.join(home_dir, 'config.json')
   })
 
   nconf.file('secrets', {
-    file: nconf.get('secrets-file-location') || home_dir + '/secret_settings.json'
+    file: nconf.get('SECRETS_FILE') || path.join(home_dir, 'secret_settings.json')
   })
 
   nconf.file('defaults', {
-    file: home_dir + '/config.defaults.json'
+    file: path.join(home_dir, 'config.defaults.json')
   })
 
   return nconf;

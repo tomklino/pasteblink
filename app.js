@@ -7,6 +7,14 @@ const configLoader = require('./config-loader.js')
 
 const config = configLoader({ home_dir: __dirname })
 const smoke_tests = [];
+
+function tearDown() {
+  //TODO send disconnect messages to all connected clients
+  process.exit(0)
+}
+process.on('SIGTERM', tearDown)
+process.on('SIGINT', tearDown)
+
 app = express();
 app.use(cookieSession({
   secret: config.get('cookie_secret'),
@@ -14,7 +22,7 @@ app.use(cookieSession({
 }))
 app.use(useragent.express());
 
-const wss = new WebSocket.Server({ port: 8888 });
+const wss = new WebSocket.Server({ port: config.get('ws_port') });
 
 app.get('/health', function(req, res) {
   res.end("healthy")
@@ -147,6 +155,7 @@ async function checkAndStartServer(port) {
   }
   app.listen(port, () => {
     console.log(`server started, listening on port ${port}`)
+    console.log(`websocket server on port ${config.get('ws_port')}`)
   })
   wss.on('connection', function connection(ws) {
     addNewClient({ ws })
