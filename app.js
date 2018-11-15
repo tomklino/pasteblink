@@ -2,6 +2,7 @@ const express = require('express');
 const WebSocket = require('ws');
 var useragent = require('express-useragent');
 const cookieSession = require('cookie-session');
+const proxy = require('express-http-proxy');
 
 const configLoader = require('./config-loader.js')
 
@@ -25,7 +26,7 @@ app.use(useragent.express());
 const wss = new WebSocket.Server({ port: config.get('ws_port') });
 
 app.get('/health', function(req, res) {
-  res.end("healthy")
+  res.end("healthy. version: 0.1")
 })
 
 const all_clients = {};
@@ -141,10 +142,8 @@ app.get('/client/:client_id', (req, res) => {
   res.send('OK')
 })
 
-app.use(function(req, res) {
-  res.status(404).send()
-})
-
+const proxy_to_frontend = proxy(config.get('frontend_server_address'))
+app.use('/', proxy_to_frontend)
 
 async function checkAndStartServer(port) {
   try {
