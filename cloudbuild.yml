@@ -1,0 +1,9 @@
+steps:
+  - name: 'gcr.io/cloud-builders/npm'
+    args: ['install', '--only=prod']
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/pasteblink', '.']
+tags:
+  [ 'v2' ]
+images:
+  - 'gcr.io/$PROJECT_ID/pasteblink'
