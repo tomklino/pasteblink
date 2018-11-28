@@ -1,6 +1,7 @@
 const express = require('express');
 const WebSocket = require('ws');
-var useragent = require('express-useragent');
+const useragent = require('express-useragent');
+const https = require('https');
 const cookieSession = require('cookie-session');
 const proxy = require('express-http-proxy');
 
@@ -22,8 +23,6 @@ app.use(cookieSession({
   signed: true
 }))
 app.use(useragent.express());
-
-const wss = new WebSocket.Server({ port: config.get('ws_port') });
 
 app.get('/health', function(req, res) {
   res.end("healthy. version: 0.1")
@@ -146,16 +145,42 @@ const proxy_to_frontend = proxy(config.get('frontend_server_address'))
 app.use('/', proxy_to_frontend)
 
 async function checkAndStartServer(port) {
+  let wss;
   try {
     await Promise.all(smoke_tests.map(async (test) => { return await test() }))
   } catch(e) {
     console.error(`smoke tests did not pass: ${e.code}. terminating.`)
     process.exit(1);
   }
-  app.listen(port, () => {
-    console.log(`server started, listening on port ${port}`)
-    console.log(`websocket server on port ${config.get('ws_port')}`)
-  })
+  if(config.get('tls')) {
+    console.log('using tls')
+    const fs = require('fs');
+
+    let privateKey  = fs.readFileSync(config.get("private_key_file"), 'utf8');
+    let certificate = fs.readFileSync(config.get("cert_file"), 'utf8');
+    let credentials = { key: privateKey, cert: certificate };
+    https.createServer(credentials, app).listen(port, () => {
+      console.log(`server started, listening on port ${port}`)
+      console.log(`websocket server on port ${config.get('ws_port')}`)
+    });
+    wssTlsServer = https.createServer(credentials)
+    wss = new WebSocket.Server({ server: wssTlsServer });
+    wssTlsServer.listen(config.get('ws_port'))
+    redirectApp = express()
+    redirectApp.get('*', (req, res) => {
+      res.redirect(301, config.get('https_redirect_target'))
+    })
+    redirectApp.listen(config.get('non_tls_port'), () => {
+      console.log("redirect app listening on " + config.get('non_tls_port'))
+    })
+  } else {
+    app.listen(port, () => {
+      console.log(`server started, listening on port ${port}`)
+      console.log(`websocket server on port ${config.get('ws_port')}`)
+    })
+    wss = new WebSocket.Server({ port: config.get('ws_port') });
+  }
+
   wss.on('connection', function connection(ws) {
     addNewClient({ ws })
     console.log('client list:', all_clients)
