@@ -89,6 +89,7 @@ function addToSession({ client_id, session_id }) {
 }
 
 function addNewClient({ ws }) {
+  console.log((new Date()).toISOString(), " new websocket connection logged")
   const client = {
     client_id: current_id
   }
@@ -120,7 +121,6 @@ app.get('/client/:client_id', (req, res) => {
     res.status(400).send('NO CLIENT BY THAT ID')
     return;
   }
-  console.log(require('util').inspect(all_clients[client_id], { depth: null }));
   if(all_clients[client_id].in_session) {
     console.log(`client ${client_id} is already in session`);
     res.status(400).send('CLIENT IS ALREADY IN SESSION');
