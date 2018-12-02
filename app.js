@@ -183,7 +183,6 @@ async function checkAndStartServer(port) {
 
   wss.on('connection', function connection(ws) {
     addNewClient({ ws })
-    console.log('client list:', all_clients)
   });
 }
 
