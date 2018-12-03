@@ -35,7 +35,7 @@ describe('client handler tests', () => {
     let fakeWs = makeFakeWs()
     let client_id = clients.createNewClient({ ws: fakeWs })
     expect(client_id).to.be.a('number')
-    sendSpyFirstMessage = fakeWs.send.getCall(0).args[0]
+    sendSpyFirstMessage = JSON.parse(fakeWs.send.getCall(0).args[0])
     expect(sendSpyFirstMessage.type).to.eql('server-init')
     expect(sendSpyFirstMessage.client_id).to.be.a('number')
   })

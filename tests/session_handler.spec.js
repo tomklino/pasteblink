@@ -99,8 +99,8 @@ describe('session handler tests', () => {
     let session_id = sessions.createNewSession({ client: client_number_eight });
     let session = sessions.getSession(session_id);
     session.addClient(client_number_nine)
-    clientEightFirstMessage = client_number_eight.ws.send.getCall(0).args[0]
-    clientNineFirstMessage = client_number_nine.ws.send.getCall(0).args[0]
+    clientEightFirstMessage = JSON.parse(client_number_eight.ws.send.getCall(0).args[0])
+    clientNineFirstMessage = JSON.parse(client_number_nine.ws.send.getCall(0).args[0])
     expect(clientEightFirstMessage.type).to.eql('linked')
     expect(clientEightFirstMessage.session_active).to.eql(false)
     expect(clientNineFirstMessage.type).to.eql('linked')

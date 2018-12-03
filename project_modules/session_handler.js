@@ -45,10 +45,11 @@ class Session {
   }
 
   sendToAllInSession({ message, sender }) {
+    let data = typeof message === "string" ? message : JSON.stringify(message)
     this.clients.filter((client) => {
       return client.client_id !== sender
     }).forEach((client) => {
-      client.ws.send(JSON.stringify(message))
+      client.ws.send(data)
     })
   }
 
