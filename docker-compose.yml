@@ -20,5 +20,7 @@ services:
     image: "mhart/alpine-node:11"
     volumes:
       - ./:/code
+    environment:
+      - CLIENT_HANDLER_DEBUG=5
     working_dir: "/code"
     command: "node app"

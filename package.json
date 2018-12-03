@@ -5,6 +5,7 @@
   "main": "app.js",
   "scripts": {
     "test": "node_modules/.bin/mocha tests",
+    "unit_tests": "node_modules/.bin/mocha tests/*.spec.js",
     "start": "node app.js",
     "cloud_build": "gcloud builds submit --project=pasteblink-222512 --config cloudbuild.yml ."
   },
@@ -22,6 +23,8 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "chai-http": "^4.2.0",
-    "mocha": "^5.2.0"
+    "mocha": "^5.2.0",
+    "sinon": "^7.1.1",
+    "sinon-chai": "^3.3.0"
   }
 }

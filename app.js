@@ -4,6 +4,8 @@ const useragent = require('express-useragent');
 const https = require('https');
 const cookieSession = require('cookie-session');
 const proxy = require('express-http-proxy');
+const clientHandler = require('./project_modules/client_handler.js')
+const sessionHandler = require('./project_modules/session_handler.js')
 
 const configLoader = require('./config-loader.js')
 
@@ -28,84 +30,8 @@ app.get('/health', function(req, res) {
   res.end("healthy. version: 0.1")
 })
 
-const all_clients = {};
-const all_sessions = {};
-let current_session_id = 1;
-let current_id = 1;
-
-function createNewSession() {
-  //session is an array of client ids
-  const session = [];
-  const session_id = current_session_id
-  all_sessions[session_id] = session;
-  current_session_id++;
-  return session_id;
-}
-
-function sendToAllInSession({ message, session_id, sender }) {
-  const recepients =
-    all_sessions[session_id]
-    .filter(client_id => client_id !== sender)
-    .map(client_id => all_clients[client_id])
-
-  recepients.forEach((recepient) => {
-    recepient.ws.send(message)
-  })
-}
-
-function addToSession({ client_id, session_id }) {
-  if(!session_id) {
-    session_id = createNewSession();
-  }
-  const session = all_sessions[session_id];
-  const client = all_clients[client_id];
-  client.in_session_id = session_id;
-  client.in_session = true;
-  client.ws.on('message', function(data) {
-    sendToAllInSession({
-      message: data,
-      session_id: client.in_session_id,
-      sender: client_id
-    })
-  })
-  session.push(client_id)
-  client.ws.send(JSON.stringify({
-    type: 'linked',
-    session_active: session.length > 1
-  }))
-  if(session.length > 1) {
-    console.log('session has additional client(s) connected to it, letting them know...')
-    session
-      .filter(peer_id => peer_id !== client_id)
-      .map(peer_id => all_clients[peer_id])
-      .forEach((peer) => {
-        peer.ws.send(JSON.stringify({
-          type: 'linked',
-          session_active: true
-        }))
-      })
-  }
-  return session_id;
-}
-
-function addNewClient({ ws }) {
-  console.log((new Date()).toISOString(), " new websocket connection logged")
-  const client = {
-    client_id: current_id
-  }
-  current_id++;
-
-  all_clients[client.client_id] = client;
-  ws.on('close', function() {
-    delete all_clients[client.client_id]
-    console.log("connection closed: " + client.client_id)
-  })
-  client.ws = ws;
-  ws.send(JSON.stringify({
-    type: 'server-init',
-    client_id: client.client_id
-  }))
-}
+const clients = clientHandler();
+const sessions = sessionHandler();
 
 app.get('/client/:client_id', (req, res) => {
   if(req.useragent.browser === 'unknown') {
@@ -114,31 +40,35 @@ app.get('/client/:client_id', (req, res) => {
     return;
   }
   const { client_id } = req.params;
-  const { session_id } = req.session;
-  console.log('/client:', client_id)
-  if(!all_clients[client_id]) {
-    console.log(`a client by the id ${client_id} is not currently connected`)
-    res.status(400).send('NO CLIENT BY THAT ID')
+  let { session_id } = req.session;
+
+  const client = clients.getClient(client_id)
+  if(!client) {
+    console.log(`trying to connect client_id ${client_id}, but no client by that id is currently connected`)
+    res.status(500).send('The client you are trying to link is not connected, try refreshing the page to get a new barcode')
     return;
   }
-  if(all_clients[client_id].in_session) {
-    console.log(`client ${client_id} is already in session`);
-    res.status(400).send('CLIENT IS ALREADY IN SESSION');
-    return;
-  }
-  if(session_id) {
-    console.log('session id is already defined in cookie:', session_id);
-    addToSession({ client_id, session_id })
-    console.log('attaching client to session. destroying linker session cookie')
-    req.session = null;
-  } else {
-    let session_id = addToSession({ client_id });
-    console.log('setting cookie');
+  if(!session_id) {
+    console.log("no session cookie, creating new session")
+    session_id = sessions.createNewSession({ client })
     req.session.session_id = session_id;
+    res.send('OK - Now scan the second device you wish to communicate with');
+  } else {
+    console.log(`session_id found in cookie ${session_id}`)
+    let session = sessions.getSession(session_id)
+    if(!session || session.ended) {
+      console.log(`the session_id in the cookie is invalid - creating a new sesion instead`)
+      session_id = sessions.createNewSession({ client })
+      req.session.session_id = session_id;
+      res.send('OK - Now scan the second device you wish to communicate with');
+      return;
+    }
+    session.addClient(client);
+    console.log(`added client ${client_id} to session ${session_id}`)
+    console.log('resetting session cookie')
+    req.session = null;
+    res.send('OK')
   }
-  console.log("all_sessions:")
-  console.log(require('util').inspect(all_sessions, { depth: null }));
-  res.send('OK')
 })
 
 const proxy_to_frontend = proxy(config.get('frontend_server_address'))
@@ -182,7 +112,7 @@ async function checkAndStartServer(port) {
   }
 
   wss.on('connection', function connection(ws) {
-    addNewClient({ ws })
+    clients.createNewClient({ ws })
   });
 }
 
