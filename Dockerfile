@@ -6,6 +6,7 @@ RUN mkdir -p /entrypoint.d
 COPY app.js /opt/app
 COPY config-loader.js /opt/app
 COPY config.defaults.json /opt/app
+COPY project_modules /opt/app/project_modules
 COPY node_modules /opt/app/node_modules
 
 WORKDIR /opt/app
