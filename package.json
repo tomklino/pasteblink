@@ -7,7 +7,7 @@
     "test": "node_modules/.bin/mocha tests",
     "unit_tests": "node_modules/.bin/mocha tests/*.spec.js",
     "start": "node app.js",
-    "cloud_build": "./gcloudbuild_helpers/gcloud_build.py --project-link gcr.io/pasteblink-222512/pasteblink --project-name pasteblink-222512 --config cloudbuild.yml"
+    "cloud_build": "./gcloud_build.py --project-link gcr.io/pasteblink-222512/pasteblink --project-name pasteblink-222512 --config cloudbuild.yml"
   },
   "author": "Tom Klinovsky",
   "license": "ISC",
