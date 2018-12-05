@@ -71,6 +71,15 @@ app.get('/client/:client_id', (req, res) => {
   }
 })
 
+if(config.get('https_redirect_target')) {
+  app.use('/', (req, res, next) => {
+    let fullHost = req.protocol + '://' + req.get('host')
+    if(req.hostname !== config.get('https_redirect_target')) {
+      res.redirect(301, config.get('https_redirect_target'))
+    }
+    next();
+  })
+}
 const proxy_to_frontend = proxy(config.get('frontend_server_address'))
 app.use('/', proxy_to_frontend)
 
