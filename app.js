@@ -2,10 +2,16 @@ const express = require('express');
 const WebSocket = require('ws');
 const useragent = require('express-useragent');
 const https = require('https');
+const redis = require('redis');
+const bluebird = require('bluebird');
 const cookieSession = require('cookie-session');
 const proxy = require('express-http-proxy');
 const clientHandler = require('./project_modules/client_handler.js')
 const sessionHandler = require('./project_modules/session_handler.js')
+const redisClientPlugin = require('./project_modules/redis-plugin.js')
+const linkerInit = require('./project_modules/linker.js')
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
 
 const configLoader = require('./config-loader.js')
 
@@ -19,72 +25,59 @@ function tearDown() {
 process.on('SIGTERM', tearDown)
 process.on('SIGINT', tearDown)
 
-app = express();
-app.use(cookieSession({
-  secret: config.get('cookie_secret'),
-  signed: true
-}))
-app.use(useragent.express());
-
-app.get('/health', function(req, res) {
-  res.end("healthy. version: 0.1")
-})
-
-const clients = clientHandler();
-const sessions = sessionHandler();
-
-app.get('/client/:client_id', (req, res) => {
-  if(req.useragent.browser === 'unknown') {
-    console.log('unknown browser, may not be able to handle cookies. ignoring')
-    res.send('')
-    return;
-  }
-  const { client_id } = req.params;
-  let { session_id } = req.session;
-
-  const client = clients.getClient(client_id)
-  if(!client) {
-    console.log(`trying to connect client_id ${client_id}, but no client by that id is currently connected`)
-    res.status(500).send('The client you are trying to link is not connected, try refreshing the page to get a new barcode')
-    return;
-  }
-  if(!session_id) {
-    console.log("no session cookie, creating new session")
-    session_id = sessions.createNewSession({ client })
-    req.session.session_id = session_id;
-    res.send('OK - Now scan the second device you wish to communicate with');
-  } else {
-    console.log(`session_id found in cookie ${session_id}`)
-    let session = sessions.getSession(session_id)
-    if(!session || session.ended) {
-      console.log(`the session_id in the cookie is invalid - creating a new sesion instead`)
-      session_id = sessions.createNewSession({ client })
-      req.session.session_id = session_id;
-      res.send('OK - Now scan the second device you wish to communicate with');
-      return;
-    }
-    session.addClient(client);
-    console.log(`added client ${client_id} to session ${session_id}`)
-    console.log('resetting session cookie')
-    req.session = null;
-    res.send('OK')
-  }
-})
-
-if(config.get('https_redirect_target')) {
-  app.use('/', (req, res, next) => {
-    let fullHost = req.protocol + '://' + req.get('host')
-    if(req.hostname !== config.get('https_redirect_target')) {
-      res.redirect(301, config.get('https_redirect_target'))
-    }
-    next();
-  })
-}
-const proxy_to_frontend = proxy(config.get('frontend_server_address'))
-app.use('/', proxy_to_frontend)
-
 async function checkAndStartServer(port) {
-  let wss;
+  let wss, clientPlugins = [];
+  app = express();
+  app.use(cookieSession({
+    secret: config.get('cookie_secret'),
+    signed: true
+  }))
+  app.use(useragent.express());
+
+  app.get('/health', function(req, res) {
+    res.end("healthy. version: 0.1")
+  })
+
+  if(config.get('https_redirect_target')) {
+    app.use('/', (req, res, next) => {
+      let fullHost = req.protocol + '://' + req.get('host')
+      if(fullHost !== config.get('https_redirect_target')) {
+        console.log(`fullHost (${fullHost}) is not the target host (${config.get('https_redirect_target')}). redirecting`)
+        res.redirect(301, config.get('https_redirect_target'))
+      }
+      next();
+    })
+  }
+
+  if(!config.get('no_redis')) {
+    const redisClient = redis.createClient(config.get('redis'))
+    let redisConnectionError = await new Promise((resolve, reject) => {
+      redisClient.on('ready', () => { resolve() })
+      redisClient.on('error', (e) => { resolve(e) })
+    })
+
+    if(!redisConnectionError) {
+      clientPlugins.push(redisClientPlugin(redisClient))
+    } else {
+      if(config.get('fail_if_redis_failed')) {
+        console.error("FATAL: redis connection failed");
+        console.error(redisConnectionError);
+        process.exit(1);
+      }
+      console.log("WARNING: no_redis flag is off but redis client failed to connect")
+    }
+  }
+
+  const clients = clientHandler({
+    plugins: clientPlugins
+  });
+  const sessions = sessionHandler();
+  const linker = linkerInit({ sessions, clients })
+  app.use(linker)
+
+  const proxy_to_frontend = proxy(config.get('frontend_server_address'))
+  app.use('/', proxy_to_frontend)
+
   try {
     await Promise.all(smoke_tests.map(async (test) => { return await test() }))
   } catch(e) {
@@ -120,8 +113,9 @@ async function checkAndStartServer(port) {
     wss = new WebSocket.Server({ port: config.get('ws_port') });
   }
 
-  wss.on('connection', function connection(ws) {
-    clients.createNewClient({ ws })
+  wss.on('connection', async function connection(ws) {
+    await clients.createNewClient({ ws })
+    console.log('new websocket connection')
   });
 }
 

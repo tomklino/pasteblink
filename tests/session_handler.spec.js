@@ -34,6 +34,7 @@ function makeFakeClient(client_id) {
   return {
     client_id,
     linkSession: sinon.spy(),
+    send: sinon.spy(),
     ws: makeFakeWs()
   }
 }
@@ -89,8 +90,8 @@ describe('session handler tests', () => {
     session.addClient(client_number_six)
     session.addClient(client_number_seven)
     session.sendToAllInSession({ message: 'hello', sender: 6 })
-    expect(client_number_six.ws.send).to.not.have.been.calledWith('hello')
-    expect(client_number_seven.ws.send).to.have.been.calledWith('hello')
+    expect(client_number_six.send).to.not.have.been.calledWith('hello')
+    expect(client_number_seven.send).to.have.been.calledWith('hello')
   })
 
   it('creates a session, and when second client is added, notifies the first', () => {
@@ -99,8 +100,8 @@ describe('session handler tests', () => {
     let session_id = sessions.createNewSession({ client: client_number_eight });
     let session = sessions.getSession(session_id);
     session.addClient(client_number_nine)
-    clientEightFirstMessage = JSON.parse(client_number_eight.ws.send.getCall(0).args[0])
-    clientNineFirstMessage = JSON.parse(client_number_nine.ws.send.getCall(0).args[0])
+    clientEightFirstMessage = JSON.parse(client_number_eight.send.getCall(0).args[0])
+    clientNineFirstMessage = JSON.parse(client_number_nine.send.getCall(0).args[0])
     expect(clientEightFirstMessage.type).to.eql('linked')
     expect(clientEightFirstMessage.session_active).to.eql(false)
     expect(clientNineFirstMessage.type).to.eql('linked')

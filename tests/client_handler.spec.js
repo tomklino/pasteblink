@@ -31,20 +31,20 @@ function makeFakeWs() {
 }
 
 describe('client handler tests', () => {
-  it('creates a new client', () => {
+  it('creates a new client', async () => {
     let fakeWs = makeFakeWs()
-    let client_id = clients.createNewClient({ ws: fakeWs })
+    let client_id = await clients.createNewClient({ ws: fakeWs })
     expect(client_id).to.be.a('number')
     sendSpyFirstMessage = JSON.parse(fakeWs.send.getCall(0).args[0])
     expect(sendSpyFirstMessage.type).to.eql('server-init')
     expect(sendSpyFirstMessage.client_id).to.be.a('number')
   })
 
-  it('creates new client and links it to a fake session', () => {
+  it('creates new client and links it to a fake session', async () => {
     let fakeWs = makeFakeWs();
-    let client_id = clients.createNewClient({ ws: fakeWs })
+    let client_id = await clients.createNewClient({ ws: fakeWs })
 
-    client = clients.getClient(client_id)
+    client = await clients.getClient(client_id)
     let fakeSession = {
       clients: [client_id],
       ended: false,

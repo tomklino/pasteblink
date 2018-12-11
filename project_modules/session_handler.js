@@ -1,5 +1,8 @@
+const debug = require('nice_debug')('SESSION_HANDLER_DEBUG')
+
 const sessions = {}
 let session_id_counter;
+
 module.exports = function init() {
   session_id_counter = 1;
   return {
@@ -45,11 +48,15 @@ class Session {
   }
 
   sendToAllInSession({ message, sender }) {
+    if(this.ended) {
+      debug(1, "session in ended state, refusing to send message")
+      return;
+    }
     let data = typeof message === "string" ? message : JSON.stringify(message)
     this.clients.filter((client) => {
       return client.client_id !== sender
     }).forEach((client) => {
-      client.ws.send(data)
+      client.send(data)
     })
   }
 

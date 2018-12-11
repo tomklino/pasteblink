@@ -1,5 +1,7 @@
 version: '3.0'
 services:
+  redis:
+    image: "redis:5.0-rc"
   frontend:
     image: "mhart/alpine-node:11"
     volumes:
