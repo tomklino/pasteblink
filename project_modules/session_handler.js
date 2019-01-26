@@ -52,11 +52,10 @@ class Session {
       debug(1, "session in ended state, refusing to send message")
       return;
     }
-    let data = typeof message === "string" ? message : JSON.stringify(message)
     this.clients.filter((client) => {
       return client.client_id !== sender
     }).forEach((client) => {
-      client.send(data)
+      client.send(message)
     })
   }
 

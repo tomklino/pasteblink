@@ -2,16 +2,12 @@ const express = require('express');
 const WebSocket = require('ws');
 const useragent = require('express-useragent');
 const https = require('https');
-const redis = require('redis');
-const bluebird = require('bluebird');
 const cookieSession = require('cookie-session');
 const proxy = require('express-http-proxy');
 const clientHandler = require('./project_modules/client_handler.js')
 const sessionHandler = require('./project_modules/session_handler.js')
-const redisClientPlugin = require('./project_modules/redis-plugin.js')
 const linkerInit = require('./project_modules/linker.js')
-bluebird.promisifyAll(redis.RedisClient.prototype);
-bluebird.promisifyAll(redis.Multi.prototype);
+const fileSaver = require('./project_modules/file_saver.js')
 
 const configLoader = require('./config-loader.js')
 
@@ -28,6 +24,11 @@ process.on('SIGINT', tearDown)
 async function checkAndStartServer(port) {
   let wss, clientPlugins = [];
   app = express();
+
+  const file_saver = fileSaver();
+  app.use(file_saver.router);
+  clientPlugins.push(file_saver.plugin);
+
   app.use(cookieSession({
     secret: config.get('cookie_secret'),
     signed: true
@@ -47,25 +48,6 @@ async function checkAndStartServer(port) {
       }
       next();
     })
-  }
-
-  if(!config.get('no_redis')) {
-    const redisClient = redis.createClient(config.get('redis'))
-    let redisConnectionError = await new Promise((resolve, reject) => {
-      redisClient.on('ready', () => { resolve() })
-      redisClient.on('error', (e) => { resolve(e) })
-    })
-
-    if(!redisConnectionError) {
-      clientPlugins.push(redisClientPlugin(redisClient))
-    } else {
-      if(config.get('fail_if_redis_failed')) {
-        console.error("FATAL: redis connection failed");
-        console.error(redisConnectionError);
-        process.exit(1);
-      }
-      console.log("WARNING: no_redis flag is off but redis client failed to connect")
-    }
   }
 
   const clients = clientHandler({

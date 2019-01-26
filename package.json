@@ -12,14 +12,13 @@
   "author": "Tom Klinovsky",
   "license": "ISC",
   "dependencies": {
-    "bluebird": "^3.5.3",
     "cookie-session": "^2.0.0-beta.3",
     "express": "^4.16.4",
     "express-http-proxy": "^1.5.0",
     "express-useragent": "^1.0.12",
     "nconf": "^0.10.0",
     "nice_debug": "^0.1.1",
-    "redis": "^2.8.0",
+    "randomstring": "^1.1.5",
     "ws": "^6.1.0"
   },
   "devDependencies": {

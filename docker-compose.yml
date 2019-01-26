@@ -1,15 +1,13 @@
 version: '3.0'
 services:
-  redis:
-    image: "redis:5.0-rc"
-  frontend:
-    image: "mhart/alpine-node:11"
-    volumes:
-      - ../pasteblink-frontend:/code
-    working_dir: "/code"
-    command: "npm run serve"
   # frontend:
-  #   image: "gcr.io/pasteblink-222512/pasteblink-frontend:v3"
+  #   image: "mhart/alpine-node:11"
+  #   volumes:
+  #     - ../pasteblink-frontend:/code
+  #   working_dir: "/code"
+  #   command: "npm run serve"
+  frontend:
+    image: "gcr.io/pasteblink-222512/pasteblink-frontend:v12"
   # server:
   #   image: "gcr.io/pasteblink-222512/pasteblink:v4"
   #   ports:
