@@ -2,6 +2,7 @@ const express = require('express');
 const WebSocket = require('ws');
 const useragent = require('express-useragent');
 const https = require('https');
+const http = require('http');
 const cookieSession = require('cookie-session');
 const proxy = require('express-http-proxy');
 const clientHandler = require('./project_modules/client_handler.js')
@@ -58,6 +59,11 @@ async function checkAndStartServer(port) {
   app.use(linker)
 
   const proxy_to_frontend = proxy(config.get('frontend_server_address'))
+  app.get('/connector/*', (req, res) => {
+    http.get(`http://${config.get('frontend_server_address')}/`, (proxy_res) => {
+      proxy_res.pipe(res)
+    })
+  })
   app.use('/', proxy_to_frontend)
 
   try {
