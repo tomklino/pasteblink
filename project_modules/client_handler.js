@@ -27,7 +27,7 @@ function initClientMethods(lifeCycleHooks) {
 
   async function getClient(client_id) {
     if(!clients[client_id]) {
-      return await lifeCycleHooks.getClient(client.client_id)
+      return await lifeCycleHooks.getClient(client_id)
     }
     return clients[client_id]
   }

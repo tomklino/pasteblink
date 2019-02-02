@@ -35,7 +35,7 @@ module.exports = function({ sessions, clients }) {
       console.log(`added client ${client_id} to session ${session_id}`)
       console.log('resetting session cookie')
       req.session = null;
-      res.send('OK')
+      res.status(201).send('OK')
     }
   })
 
