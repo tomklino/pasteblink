@@ -44,9 +44,21 @@ module.exports = function() {
     const channel_id = req.params['channel'];
     const channel = channels[channel_id];
 
+    if(!channel.response_stream.writable) {
+      debug(1, 'response stream not writeable! channel:', channel_id)
+      res.end();
+      return;
+    }
     req.pipe(channel.response_stream);
+    channel.response_stream.on('end', () => {
+      req.unpipe();
+      req.end();
+      res.end();
+    })
     req.on('end', () => {
-      channel.response_stream.end()
+      req.unpipe();
+      channel.response_stream.end();
+      res.end();
     })
   })
 
