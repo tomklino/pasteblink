@@ -59,7 +59,7 @@ async function checkAndStartServer(port) {
   app.use(linker)
 
   const proxy_to_frontend = proxy(config.get('frontend_server_address'))
-  app.get('/connector/*', (req, res) => {
+  app.get(['/connector/*', '/welcome'], (req, res) => {
     http.get(`http://${config.get('frontend_server_address')}/`, (proxy_res) => {
       proxy_res.pipe(res)
     })
