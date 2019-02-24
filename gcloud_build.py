@@ -28,7 +28,7 @@ def getLastTagNumber(project_link):
 
     images = json.loads(check_output(query_gcloud_command))
 
-    max_v_found = None
+    max_v_found = 0
     for image in images:
         for tag in image['tags']:
             if re.match('^v\d+$', tag) != None:
