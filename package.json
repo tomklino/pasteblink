@@ -16,7 +16,7 @@
     "express": "^4.16.4",
     "express-http-proxy": "^1.5.0",
     "express-useragent": "^1.0.12",
-    "nconf": "^0.10.0",
+    "nconf": "^0.12.0",
     "nice_debug": "^0.1.1",
     "randomstring": "^1.1.5",
     "ws": "^6.1.0"
@@ -24,7 +24,7 @@
   "devDependencies": {
     "chai": "^4.2.0",
     "chai-http": "^4.2.0",
-    "mocha": "^5.2.0",
+    "mocha": "^10.0.0",
     "sinon": "^7.1.1",
     "sinon-chai": "^3.3.0"
   }
